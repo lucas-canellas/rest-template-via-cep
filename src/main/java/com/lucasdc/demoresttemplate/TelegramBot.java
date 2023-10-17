@@ -15,16 +15,32 @@ public class TelegramBot extends TelegramLongPollingBot {
 
    @Override
    public void onUpdateReceived(Update update) {
+
        if (update.hasMessage() && update.getMessage().hasText()) {
            Message message = update.getMessage();
            String text = message.getText();
+
+           if(text.equals("/start")) {
+               SendMessage sendMessage = new SendMessage();
+               sendMessage.setChatId(message.getChatId().toString());
+
+               String msgStart = "Insira o CEP desejado";
+
+               sendMessage.setText(msgStart);
+
+               try {
+                   execute(sendMessage);
+               } catch (TelegramApiException e) {
+                   e.printStackTrace();
+               }
+           }
    
            if (text.matches("\\d{8}")) {
                // Se a mensagem for um CEP válido (8 dígitos numéricos), faça a consulta e retorne o resultado.
                String cep = text;
                CepResultDTO resultadoCep = consultaCepApi.consultaCep(cep);
                
-               if (resultadoCep != null) {
+               if (resultadoCep.getCep() != null) {
                    String resposta = "Resultado da consulta para o CEP " + cep + ":\n"
                            + "CEP: " + resultadoCep.getCep() + "\n"
                            + "Logradouro: " + resultadoCep.getLogradouro() + "\n"
@@ -47,6 +63,28 @@ public class TelegramBot extends TelegramLongPollingBot {
                    } catch (TelegramApiException e) {
                        e.printStackTrace();
                    }
+               } else {
+                   // Envie a resposta de volta ao usuário.
+                   SendMessage sendMessage = new SendMessage();
+                   sendMessage.setChatId(message.getChatId().toString());
+                   sendMessage.setText("CEP não encontrado");
+
+                   try {
+                       execute(sendMessage);
+                   } catch (TelegramApiException e) {
+                       e.printStackTrace();
+                   }
+               }
+           } else if(!text.matches("\\d{8}") && !text.equals("/start")) {
+               SendMessage sendMessage = new SendMessage();
+               sendMessage.setChatId(message.getChatId().toString());
+               String resposta = "CEP inválido";
+               sendMessage.setText(resposta);
+
+               try {
+                   execute(sendMessage);
+               } catch (TelegramApiException e) {
+                   e.printStackTrace();
                }
            }
        }
@@ -54,11 +92,9 @@ public class TelegramBot extends TelegramLongPollingBot {
 
    @Override
    public String getBotToken() {
-       return System.getenv("");
+       return System.getenv("TELEGRAM_BOT_TOKEN");
    }
-//    public String getBotToken() {
-//        return System.getenv("TELEGRAM_BOT_TOKEN");
-//    }
+
 
    
 
